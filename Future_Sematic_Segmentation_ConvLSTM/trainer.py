@@ -8,6 +8,7 @@ import os
 import convlstm as cl
 from earlystopping import EarlyStopping
 import matplotlib.pyplot as plt
+import model
 
 
 def image_plot(target_arr, output_arr):

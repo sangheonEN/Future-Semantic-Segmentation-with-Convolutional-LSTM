@@ -248,9 +248,9 @@ class ResNet(nn.Module):
 
         # layer1, 2, 3, 4의 output feature map으로 lstm conv layer 모델에 input하기 위해 추출.
         feature_1 = self.layer1(x)
-        feature_2 = self.layer2(x)
-        feature_3 = self.layer3(x)
-        feature_4 = self.layer4(x)
+        feature_2 = self.layer2(feature_1)
+        feature_3 = self.layer3(feature_2)
+        feature_4 = self.layer4(feature_3)
 
         return feature_1, feature_2, feature_3, feature_4
 

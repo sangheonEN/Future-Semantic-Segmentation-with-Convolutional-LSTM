@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import encoder
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -163,15 +164,21 @@ class Seq2Seq(nn.Module):
             in_channels=num_kernels, out_channels=num_channels,
             kernel_size=kernel_size, padding=padding)
 
-    def forward(self, X):
+    def forward(self, feature_1, feature_2, feature_3, feature_4):
         # Forward propagation through all the layers
-        output = self.sequential(X)
+        output_1 = self.sequential(feature_1)
+        output_2 = self.sequential(feature_2)
+        output_3 = self.sequential(feature_3)
+        output_4 = self.sequential(feature_4)
 
-        # Return only the last output frame
-        output = self.conv(output[:, :, -1])
+        # feature map's Return only the last output frame
+        output_1 = self.conv(output_1[:, :, -1])
+        output_2 = self.conv(output_2[:, :, -1])
+        output_3 = self.conv(output_3[:, :, -1])
+        output_4 = self.conv(output_4[:, :, -1])
 
-        # Sigmoid(output) why? for binary classification!
-        return nn.Sigmoid()(output)
+        # output_last_feature map to obtain future map and concatenation
+        return output_1, output_2, output_3, output_4
 
 
 """ debug
