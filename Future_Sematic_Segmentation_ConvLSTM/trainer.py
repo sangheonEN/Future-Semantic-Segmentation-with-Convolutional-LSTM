@@ -90,7 +90,7 @@ def train(train_data, valid_data, args, device):
 
     optimizer = Adam(endtoendmodel.parameters(), lr=args.lr)
 
-    loss_function = nn.BCELoss(reduction='sum')
+    loss_function = nn.BCEWithLogitsLoss(reduction='sum')
 
 
     for epoch in range(cur_epoch, args.max_epoch+1):
