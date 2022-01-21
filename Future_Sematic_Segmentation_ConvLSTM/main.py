@@ -15,7 +15,7 @@ parser.add_argument("-batch_size", default=16, type=int, help= "mini batch")
 parser.add_argument("-frames_input", default=10, type=int, help= "sum of input frames")
 parser.add_argument("-frames_output", default=1, type=int, help= "sum of predict frames")
 parser.add_argument("-save_dir", default="./save_ckpt", type=str, help= "save_model_file")
-parser.add_argument("-mode_flag", default="inference", type=str, help= "select the mode: [train], [inference]")
+parser.add_argument("-mode_flag", default="train", type=str, help= "select the mode: [train], [inference]")
 args = parser.parse_args()
 
 

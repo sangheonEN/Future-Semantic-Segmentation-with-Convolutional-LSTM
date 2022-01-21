@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch
-import encoder
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -166,6 +165,12 @@ class Seq2Seq(nn.Module):
 
     def forward(self, feature_1, feature_2, feature_3, feature_4):
         # Forward propagation through all the layers
+        # 각 ConvLSTM 모델에 들어가는 input feature의 shape을 ConvLSTM 내부 Layer Shape에도 맞춰줘야함.
+        # batch, sequence, channel, h, w
+        # feature1 shape: 16, 10, 256, 16, 16
+        # feature2 shape: 16, 10, 512, 8, 8
+        # feature3 shape: 16, 10, 1024, 4, 4
+        # feature4 shape: 16, 10, 2048, 2, 2
         output_1 = self.sequential(feature_1)
         output_2 = self.sequential(feature_2)
         output_3 = self.sequential(feature_3)

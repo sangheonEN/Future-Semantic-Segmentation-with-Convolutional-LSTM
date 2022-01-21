@@ -23,6 +23,7 @@ def data_set():
 
     MovingMNIST = np.load('mnist_test_seq.npy').transpose(1, 0, 2, 3)
 
+
     # Shuffle Data
     np.random.shuffle(MovingMNIST)
 
@@ -38,24 +39,38 @@ def collate(batch):
 
     # Add channel dim, scale pixels between 0 and 1, send to GPU
     batch = torch.tensor(batch).unsqueeze(1)
-    batch = batch / 255.0
-    batch = batch.to(device)
+    # gray scale one channel -> three channel shape for resnet imagenet pretrain을 위해서 3채널(rgb기준)으로 해야 weight map을 얻음.
+    batch_size, channel_size, sequence, h, w = batch.shape
+    new_batch = torch.zeros(batch_size, 3, sequence, h, w)
+    new_batch[:,0,:,:,:] = batch[:,0,:,:,:]
+    new_batch[:,1,:,:,:] = batch[:,0,:,:,:]
+    new_batch[:,2,:,:,:] = batch[:,0,:,:,:]
+
+    new_batch = new_batch / 255.0
+    new_batch = new_batch.to(device)
 
     # Randomly pick 10 frames as input, 11th frame is target
     rand = np.random.randint(10,20)
-    return batch[:,:,rand-10:rand], batch[:,:,rand]
+    return new_batch[:,:,rand-10:rand], new_batch[:,:,rand]
 
 def collate_test(batch):
 
-    # Last 10 frames are target
+    # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
+    # 지금 shape은 batch, 1channel, h, w
     target = np.array(batch)[:, 10:]
 
     # Add channel dim, scale pixels between 0 and 1, send to GPU
     batch = torch.tensor(batch).unsqueeze(1)
-    batch = batch / 255.0
-    batch = batch.to(device)
+    batch_size, channel_size, sequence, h, w = batch.shape
+    new_batch = torch.zeros(batch_size, 3, sequence, h, w)
+    new_batch[:,0,:,:,:] = batch[:,0,:,:,:]
+    new_batch[:,1,:,:,:] = batch[:,0,:,:,:]
+    new_batch[:,2,:,:,:] = batch[:,0,:,:,:]
 
-    return batch, target
+    new_batch = new_batch / 255.0
+    new_batch = new_batch.to(device)
+
+    return new_batch, target
 
 
 # Training Data Loader

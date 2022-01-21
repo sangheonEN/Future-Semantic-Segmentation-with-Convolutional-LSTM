@@ -5,14 +5,14 @@ import convlstm
 
 class Decoder(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super(Decoder).__init__()
+        super(Decoder, self).__init__()
         self.in_channels = in_channels
         self.out_channles = out_channels
 
         self.sequential = nn.Sequential()
 
         # 1x1 conv -> upsampling(transpose2d) -> element wise addition
-        for i in range(len(in_channels[0])):
+        for i in range(len(in_channels)):
             self.sequential.add_module(
                 f"conv_{i + 1}", nn.Conv2d(in_channels=in_channels[i],
                                            out_channels=in_channels[i], kernel_size=1),

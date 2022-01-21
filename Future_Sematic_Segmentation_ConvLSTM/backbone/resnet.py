@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from hub import load_state_dict_from_url
+from backbone.hub import load_state_dict_from_url
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -140,7 +140,7 @@ class ResNet(nn.Module):
     feature_1, feature_2, feature_3, feature_4
     """
 
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
+    def __init__(self, block, layers, class_num, num_classes=1000, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
@@ -159,7 +159,7 @@ class ResNet(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(class_num, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True) # inplace=True 하면, inplace 연산을 수행함, inplace 연산은 결과값을 새로운 변수에 값을 저장하는 대신 기존의 데이터를 대체하는것을 의미
@@ -261,7 +261,7 @@ class ResNet(nn.Module):
         return feature_1, feature_2, feature_3, feature_4
 
 
-def _resnet(arch, block, layers, pretrained, progress, **kwargs):
+def _resnet(arch, block, layers, pretrained, progress, class_num, **kwargs):
     """
     - model url변수에 arch에 저장된 resnet layer 수를 전달하여 pretrained된 weight map 값 불러와서 초기화 시킴!
 
@@ -275,7 +275,7 @@ def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     :param kwargs:
     :return: resnet model
     """
-    model = ResNet(block, layers, **kwargs)
+    model = ResNet(block, layers, class_num, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
@@ -307,7 +307,7 @@ def resnet34(pretrained=False, progress=True, **kwargs):
                    **kwargs)
 
 
-def resnet50(pretrained=False, progress=True, **kwargs):
+def resnet50(pretrained=False, progress=True, class_num=3, **kwargs):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -318,7 +318,7 @@ def resnet50(pretrained=False, progress=True, **kwargs):
     """
 
     # Bottleneck class 파악하기!
-    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
+    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress, class_num,
                    **kwargs)
 
 
@@ -410,17 +410,17 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
                    pretrained, progress, **kwargs)
 
 
-if __name__ == "__main__":
-
-    x = torch.rand(32, 3, 128, 128)
-
-    model = resnet50()
-
-    feature1, feature2, feature3, feature4 = model(x)
-
-    print("zz")
-    print("zz")
-    print("zz")
+# if __name__ == "__main__":
+#
+#     x = torch.rand(32, 3, 128, 128)
+#
+#     model = resnet50()
+#
+#     feature1, feature2, feature3, feature4 = model(x)
+#
+#     print("zz")
+#     print("zz")
+#     print("zz")
 
 
 
