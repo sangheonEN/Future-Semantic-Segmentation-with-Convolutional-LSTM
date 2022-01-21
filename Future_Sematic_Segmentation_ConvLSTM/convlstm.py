@@ -200,4 +200,17 @@ if __name__ == "__main__":
     # 최종 hidden layer, cell layer
     hidden = last_layer[0][0]
     cell = last_layer[0][1]
+    
+----------------------------------------------------------------------------------------------------------------
+
+# The input video frames are grayscale, thus single channel
+model = Seq2Seq(num_channels=1, num_kernels=64, 
+kernel_size=(3, 3), padding=(1, 1), activation="relu", 
+frame_size=(64, 64), num_layers=3).to(device)
+
+optim = Adam(model.parameters(), lr=1e-4)
+
+# Binary Cross Entropy, target pixel values either 0 or 1
+criterion = nn.BCELoss(reduction='sum')
+    
 """

@@ -10,6 +10,13 @@ from earlystopping import EarlyStopping
 import matplotlib.pyplot as plt
 import model
 
+transpose_channels_list = [
+    # transpose_in_channels
+    [64, 64, 32, 16],
+    # transpose_out_channels
+    [64, 32, 16, 1]
+]
+
 
 def image_plot(target_arr, output_arr):
     fig = plt.figure()
@@ -60,8 +67,9 @@ def train(train_data, valid_data, args, device):
     train_loader, val_loader = dataset.data_loader(train_data, valid_data, args.batch_size)
 
     # Seq2Seq -> nn.Sequential 클래스를 이용해 Multi Layer 구성을 만듬.
-    model = cl.Seq2Seq(num_channels=1, num_kernels=64, kernel_size=(3, 3),
-                       padding=(1, 1), activation='relu', frame_size=(64, 64), num_layers=3).to(device)
+    endtoendmodel = model.Ensemble(num_channels=1, num_kernels=64, kernel_size=(3, 3),
+                                   padding=(1, 1), activation='relu', frame_size=(64, 64),
+                                   num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
 
     early_stopping = EarlyStopping(patience=5, improved_valid=True)
 
@@ -70,7 +78,7 @@ def train(train_data, valid_data, args, device):
         # load existing model
         print('==> loading existing model')
         model_info = torch.load(os.path.join(args.save_dir, 'checkpoint.pth.tar'))
-        model.load_state_dict(model_info['state_dict'])
+        endtoendmodel.load_state_dict(model_info['state_dict'])
         optimizer = torch.optim.Adam(model.parameters())
         optimizer.load_state_dict(model_info['optimizer'])
         cur_epoch = model_info['epoch'] + 1
@@ -80,16 +88,16 @@ def train(train_data, valid_data, args, device):
         cur_epoch = 0
 
 
-    optimizer = Adam(model.parameters(), lr=args.lr)
+    optimizer = Adam(endtoendmodel.parameters(), lr=args.lr)
 
     loss_function = nn.BCELoss(reduction='sum')
 
 
     for epoch in range(cur_epoch, args.max_epoch+1):
         train_loss = 0
-        model.train()
+        endtoendmodel.train()
         for batch_num, (input, target) in enumerate(train_loader, 1):
-            output = model(input)
+            output = endtoendmodel(input)
             loss = loss_function(output.flatten(), target.flatten())
             loss.backward()
             optimizer.step()
@@ -99,10 +107,10 @@ def train(train_data, valid_data, args, device):
         train_loss /= len(train_loader.dataset)
 
         val_loss = 0
-        model.eval()
+        endtoendmodel.eval()
         with torch.no_grad():
             for input, target in val_loader:
-                output = model(input)
+                output = endtoendmodel(input)
                 loss = loss_function(output.flatten(), target.flatten())
                 val_loss += loss
 
@@ -112,7 +120,7 @@ def train(train_data, valid_data, args, device):
 
         model_dict = {
             'epoch': epoch,
-            'state_dict': model.state_dict(),
+            'state_dict': endtoendmodel.state_dict(),
             'optimizer': optimizer.state_dict()
         }
 
@@ -126,15 +134,16 @@ def inference(test_data, args, device):
 
     test_loader = dataset.data_loader_test(test_data)
 
-    model = cl.Seq2Seq(num_channels=1, num_kernels=64, kernel_size=(3, 3),
-                       padding=(1, 1), activation='relu', frame_size=(64, 64), num_layers=3).to(device)
+    endtoendmodel = model.Ensemble(num_channels=1, num_kernels=64, kernel_size=(3, 3),
+                                   padding=(1, 1), activation='relu', frame_size=(64, 64),
+                                   num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
 
     if os.path.exists(os.path.join(args.save_dir, 'checkpoint.pth.tar')):
         # load existing model
         print('==> loading existing model')
         model_info = torch.load(os.path.join(args.save_dir, 'checkpoint.pth.tar'))
-        model.load_state_dict(model_info['state_dict'])
-        optimizer = torch.optim.Adam(model.parameters())
+        endtoendmodel.load_state_dict(model_info['state_dict'])
+        optimizer = torch.optim.Adam(endtoendmodel.parameters())
         optimizer.load_state_dict(model_info['optimizer'])
         cur_epoch = model_info['epoch'] + 1
 
@@ -145,7 +154,7 @@ def inference(test_data, args, device):
     # Loop over timesteps
     for timestep in range(target.shape[1]):
         input = batch[:, :, timestep:timestep + 10]
-        output[:, timestep] = (model(input).squeeze(1).cpu() > 0.5) * 255.0
+        output[:, timestep] = (endtoendmodel(input).squeeze(1).cpu() > 0.5) * 255.0
 
     save_path = os.path.dirname(os.path.abspath(__file__))
 

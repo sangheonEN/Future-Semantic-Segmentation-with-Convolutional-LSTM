@@ -6,7 +6,7 @@ import decoder
 
 class Ensemble(nn.Module):
     def __init__(self, num_channels, num_kernels, kernel_size, padding,
-                 activation, frame_size, num_layers):
+                 activation, frame_size, num_layers, transpose_channels_list):
         super(Ensemble).__init__()
         self.num_channels = num_channels
         self.num_kernels = num_kernels
@@ -15,12 +15,14 @@ class Ensemble(nn.Module):
         self.activation = activation
         self.frame_size = frame_size
         self.num_layers = num_layers
+        self.transpose_channels_list = transpose_channels_list
 
         self.back_bone = encoder.resnet50(pretrained=True)
         self.conv_lstm = convlstm.Seq2Seq(self.num_channels, self.num_kernels, self.kernel_size,
                                           self.padding, self.activation, self.frame_size,
                                           self.num_layers)
-        self.decoder = decoder.Decoder()
+
+        self.decoder = decoder.Decoder(in_channels=transpose_channels_list[0], out_channels=transpose_channels_list[1])
 
     def forward(self, image):
         feature_1, feature_2, feature_3, feature_4 = self.back_bone(image)
