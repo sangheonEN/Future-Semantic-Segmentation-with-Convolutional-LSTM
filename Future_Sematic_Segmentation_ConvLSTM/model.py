@@ -42,6 +42,7 @@ class Ensemble(nn.Module):
 
         # decoder에서 transpose2d conv layer의 input, output channels lstm output인 input data와 일치해야함.
         # 디버그 하면서 channels 확인 필요.
+        #RuntimeError: Given groups=1, weight of size [256, 65, 3, 3], expected input[16, 74, 16, 16] to have 65 channels, but got 74 channels instead
         final_output = self.decoder(lstm_output_1, lstm_output_2, lstm_output_3, lstm_output_4)
 
         return final_output
