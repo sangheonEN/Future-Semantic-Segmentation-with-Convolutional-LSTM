@@ -9,13 +9,7 @@ import convlstm as cl
 from earlystopping import EarlyStopping
 import matplotlib.pyplot as plt
 import model
-
-transpose_channels_list = [
-    # transpose_in_channels
-    [64, 64, 32, 16],
-    # transpose_out_channels
-    [64, 32, 16, 1]
-]
+from net_parameters import *
 
 
 def image_plot(target_arr, output_arr):
@@ -67,9 +61,7 @@ def train(train_data, valid_data, args, device):
     train_loader, val_loader = dataset.data_loader(train_data, valid_data, args.batch_size)
 
     # Seq2Seq -> nn.Sequential 클래스를 이용해 Multi Layer 구성을 만듬.
-    endtoendmodel = model.Ensemble(num_channels=1, num_kernels=64, kernel_size=(3, 3),
-                                   padding=(1, 1), activation='relu', frame_size=(64, 64),
-                                   num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
+    endtoendmodel = model.Ensemble(convLSTM_parameters_list , num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
 
     early_stopping = EarlyStopping(patience=5, improved_valid=True)
 
@@ -97,6 +89,7 @@ def train(train_data, valid_data, args, device):
         train_loss = 0
         endtoendmodel.train()
         for batch_num, (input, target) in enumerate(train_loader, 1):
+            input, target = input.to(device), target.to(device)
             output = endtoendmodel(input)
             loss = loss_function(output.flatten(), target.flatten())
             loss.backward()
@@ -134,9 +127,7 @@ def inference(test_data, args, device):
 
     test_loader = dataset.data_loader_test(test_data)
 
-    endtoendmodel = model.Ensemble(num_channels=1, num_kernels=64, kernel_size=(3, 3),
-                                   padding=(1, 1), activation='relu', frame_size=(64, 64),
-                                   num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
+    endtoendmodel = model.Ensemble(convLSTM_parameters_list , num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
 
     if os.path.exists(os.path.join(args.save_dir, 'checkpoint.pth.tar')):
         # load existing model

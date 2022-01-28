@@ -55,10 +55,6 @@ def collate(batch):
 
 def collate_test(batch):
 
-    # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
-    # 지금 shape은 batch, 1channel, h, w
-    target = np.array(batch)[:, 10:]
-
     # Add channel dim, scale pixels between 0 and 1, send to GPU
     batch = torch.tensor(batch).unsqueeze(1)
     batch_size, channel_size, sequence, h, w = batch.shape
@@ -69,6 +65,11 @@ def collate_test(batch):
 
     new_batch = new_batch / 255.0
     new_batch = new_batch.to(device)
+
+    # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
+    # 지금 shape은 batch, 1channel, h, w
+    # target = np.array(batch)[:, 10:]
+    target = np.array(new_batch)[:,:, 10:]
 
     return new_batch, target
 

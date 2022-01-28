@@ -126,42 +126,98 @@ class Seq2Seq(nn.Module):
 
     """
 
-    def __init__(self, num_channels, num_kernels, kernel_size, padding,
-                 activation, frame_size, num_layers):
+    def __init__(self, convLSTM_parameters_list, num_layers):
         super(Seq2Seq, self).__init__()
+        """
+        # parameters shape: num_channels, num_kernels, kernel_size, padding, activation, frame_size
+        convLSTM_parameters_list[0].get("feature_1")
+        convLSTM_parameters_list[0].get("feature_2")
+        convLSTM_parameters_list[0].get("feature_3")
+        convLSTM_parameters_list[0].get("feature_4")
+        
+        # layer name description
+        - feature별 first convlstm layer
+        convlstm1_feature_{1 ~ 4}
+        - feature별 first convlstm layer의 batch normalization layer
+        batchnorm_conv1_feature_{1~4}
+        - feature별 second ~ final convlstm layer
+        convlstm{1~multi_layer_num}_feature_{1~4}
+        - feature별 second ~ final convlstm layer의 batch normalization layer
+        batchnorm_conv{1 ~ multi_layer_num}_feature_{1~4}
+        """
 
-        self.sequential = nn.Sequential()
+        self.sequential1 = nn.Sequential()
+        self.sequential2 = nn.Sequential()
+        self.sequential3 = nn.Sequential()
+        self.sequential4 = nn.Sequential()
 
-        # Add First layer (Different in_channels than the rest)
-        self.sequential.add_module(
-            "convlstm1", ConvLSTM(
-                in_channels=num_channels, out_channels=num_kernels,
-                kernel_size=kernel_size, padding=padding,
-                activation=activation, frame_size=frame_size)
+        self.sequence_layer(self.sequential1, convLSTM_parameters_list, num_layers, feature_num=1)
+        self.sequence_layer(self.sequential2, convLSTM_parameters_list, num_layers, feature_num=2)
+        self.sequence_layer(self.sequential3, convLSTM_parameters_list, num_layers, feature_num=3)
+        self.sequence_layer(self.sequential4, convLSTM_parameters_list, num_layers, feature_num=4)
+
+        # conv의 역할은 마지막 sequence output만 다시 convolution operate해서 차원을 축소하기 위함.
+        # 있어야지. 왜냐하면, feature마다 sequence 마지막 output을 가져와서 결합해야하니까!
+        # 여기서 convolution 연산을 통해 input 할때 channels 수로 다시 만들어줌
+        self.conv1 = nn.Conv2d(
+            in_channels=convLSTM_parameters_list[0].get(f"feature_{1}")[1],
+            out_channels=convLSTM_parameters_list[0].get(f"feature_{1}")[0],
+            kernel_size=convLSTM_parameters_list[0].get(f"feature_{1}")[2],
+            padding=convLSTM_parameters_list[0].get(f"feature_{1}")[3]
         )
 
-        self.sequential.add_module(
-            "batchnorm1", nn.BatchNorm3d(num_features=num_kernels)
+        self.conv2 = nn.Conv2d(
+            in_channels=convLSTM_parameters_list[1].get(f"feature_{2}")[1],
+            out_channels=convLSTM_parameters_list[1].get(f"feature_{2}")[0],
+            kernel_size=convLSTM_parameters_list[1].get(f"feature_{2}")[2],
+            padding=convLSTM_parameters_list[1].get(f"feature_{2}")[3]
         )
 
-        # Add rest of the layers
-        for l in range(2, num_layers + 1):
-            self.sequential.add_module(
-                f"convlstm{l}", ConvLSTM(
-                    in_channels=num_kernels, out_channels=num_kernels,
-                    kernel_size=kernel_size, padding=padding,
-                    activation=activation, frame_size=frame_size)
-            )
+        self.conv3 = nn.Conv2d(
+            in_channels=convLSTM_parameters_list[2].get(f"feature_{3}")[1],
+            out_channels=convLSTM_parameters_list[2].get(f"feature_{3}")[0],
+            kernel_size=convLSTM_parameters_list[2].get(f"feature_{3}")[2],
+            padding=convLSTM_parameters_list[2].get(f"feature_{3}")[3]
+        )
 
-            self.sequential.add_module(
-                f"batchnorm{l}", nn.BatchNorm3d(num_features=num_kernels)
-            )
+        self.conv4 = nn.Conv2d(
+            in_channels=convLSTM_parameters_list[3].get(f"feature_{4}")[1],
+            out_channels=convLSTM_parameters_list[3].get(f"feature_{4}")[0],
+            kernel_size=convLSTM_parameters_list[3].get(f"feature_{4}")[2],
+            padding=convLSTM_parameters_list[3].get(f"feature_{4}")[3]
+        )
 
-            # Add Convolutional Layer to predict output frame
-            # 마지막 frame?
-        self.conv = nn.Conv2d(
-            in_channels=num_kernels, out_channels=num_channels,
-            kernel_size=kernel_size, padding=padding)
+    def sequence_layer(self, sequential_instance, param_data, num_layers, feature_num):
+        # feature_1 sequential layer
+        sequential_instance.add_module(
+            f"convlstm1_feature_{feature_num}", ConvLSTM(
+                in_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[0],
+                out_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
+                kernel_size=param_data[feature_num-1].get(f"feature_{feature_num}")[2],
+                padding=param_data[feature_num-1].get(f"feature_{feature_num}")[3],
+                activation=param_data[feature_num-1].get(f"feature_{feature_num}")[4],
+                frame_size=param_data[feature_num-1].get(f"feature_{feature_num}")[5]
+            )
+        )
+        sequential_instance.add_module(
+            f"batchnorm_conv1_feature_{feature_num}",
+            nn.BatchNorm3d(num_features=param_data[feature_num-1].get(f"feature_{feature_num}")[1])
+        )
+        for j in range(num_layers):
+            sequential_instance.add_module(
+                f"convlstm{j + 2}_feature_{feature_num}", ConvLSTM(
+                    in_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
+                    out_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
+                    kernel_size=param_data[feature_num-1].get(f"feature_{feature_num}")[2],
+                    padding=param_data[feature_num-1].get(f"feature_{feature_num}")[3],
+                    activation=param_data[feature_num-1].get(f"feature_{feature_num}")[4],
+                    frame_size=param_data[feature_num-1].get(f"feature_{feature_num}")[5]
+                )
+            )
+            sequential_instance.add_module(
+                f"batchnorm_conv{j + 2}_feature_{feature_num}",
+                nn.BatchNorm3d(num_features=param_data[feature_num-1].get(f"feature_{feature_num}")[1])
+            )
 
     def forward(self, feature_1, feature_2, feature_3, feature_4):
         # Forward propagation through all the layers
@@ -171,16 +227,16 @@ class Seq2Seq(nn.Module):
         # feature2 shape: 16, 10, 512, 8, 8
         # feature3 shape: 16, 10, 1024, 4, 4
         # feature4 shape: 16, 10, 2048, 2, 2
-        output_1 = self.sequential(feature_1)
-        output_2 = self.sequential(feature_2)
-        output_3 = self.sequential(feature_3)
-        output_4 = self.sequential(feature_4)
+        output_1 = self.sequential1(feature_1)
+        output_2 = self.sequential2(feature_2)
+        output_3 = self.sequential3(feature_3)
+        output_4 = self.sequential4(feature_4)
 
         # feature map's Return only the last output frame
-        output_1 = self.conv(output_1[:, :, -1])
-        output_2 = self.conv(output_2[:, :, -1])
-        output_3 = self.conv(output_3[:, :, -1])
-        output_4 = self.conv(output_4[:, :, -1])
+        output_1 = self.conv1(output_1[:, :, -1])
+        output_2 = self.conv2(output_2[:, :, -1])
+        output_3 = self.conv3(output_3[:, :, -1])
+        output_4 = self.conv4(output_4[:, :, -1])
 
         # output_last_feature map to obtain future map and concatenation
         return output_1, output_2, output_3, output_4
@@ -219,3 +275,37 @@ optim = Adam(model.parameters(), lr=1e-4)
 criterion = nn.BCELoss(reduction='sum')
     
 """
+
+#--------------- add_module loop문으로 작성해봤는데 안되었다.
+# 하나의 sequence instance로 모두 저장하게되면 forward할때 feature별로 별도로 투입할 수 없음.
+# 추후에 하나의 sequence로 여러 input을 받아 layer를 수행할 수 있도록 작성해봐야겠다.
+
+# # add first layer
+# for i in range(len(convLSTM_parameters_list)):
+#     self.sequential.add_module(
+#         f"convlstm1_feature_{i+1}", ConvLSTM(
+#             in_channels=convLSTM_parameters_list[0].get(f"feature_{i+1}")[0],
+#             out_channels=convLSTM_parameters_list[0].get(f"feature_{i+1}")[1],
+#             kernel_size=convLSTM_parameters_list[0].get(f"feature_{i+1}")[2],
+#             padding=convLSTM_parameters_list[0].get(f"feature_{i+1}")[3],
+#             activation=convLSTM_parameters_list[0].get(f"feature_{i+1}")[4],
+#             frame_size=convLSTM_parameters_list[0].get(f"feature_1{i+1}")[5]
+#         )
+#     )
+#     self.sequential.add_module(
+#         f"batchnorm_conv1_feature_{i+1}", nn.BatchNorm3d(num_features=convLSTM_parameters_list[0].get(f"feature_{i+1}")[1])
+#     )
+#     for j in range(len(num_layers)):
+#         self.sequential.add_module(
+#             f"convlstm{j+2}_feature_{i+1}", ConvLSTM(
+#                 in_channels=convLSTM_parameters_list[0].get(f"feature_{i+1}")[1],
+#                 out_channels=convLSTM_parameters_list[0].get(f"feature_{i+1}")[1],
+#                 kernel_size=convLSTM_parameters_list[0].get(f"feature_{i+1}")[2],
+#                 padding=convLSTM_parameters_list[0].get(f"feature_{i+1}")[3],
+#                 activation=convLSTM_parameters_list[0].get(f"feature_{i+1}")[4],
+#                 frame_size=convLSTM_parameters_list[0].get(f"feature_{i+1}")[5]
+#             )
+#         )
+#         self.sequential.add_module(
+#             f"batchnorm_conv{j+2}_feature_{i+1}", nn.BatchNorm3d(num_features=convLSTM_parameters_list[0].get(f"feature_{i+1}")[1])
+#         )
