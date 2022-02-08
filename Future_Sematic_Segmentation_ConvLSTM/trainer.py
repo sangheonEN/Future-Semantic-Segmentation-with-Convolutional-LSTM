@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import model
 from net_parameters import *
 import utils
+import torch.nn.functional as F
 
 
 def train(train_data, valid_data, args, device):
@@ -55,7 +56,8 @@ def train(train_data, valid_data, args, device):
         for batch_num, (input, target) in tqdm(enumerate(train_loader, 1)):
             input, target = input.to(device), target.to(device)
             output = endtoendmodel(input)
-            loss = loss_function(output.flatten(), target.flatten())
+            target = F.one_hot(target.long(), 2)
+            loss = loss_function(output.flatten().float().unsqueeze(-1), target.flatten().float().unsqueeze(-1))
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -67,8 +69,10 @@ def train(train_data, valid_data, args, device):
         endtoendmodel.eval()
         with torch.no_grad():
             for input, target in tqdm(val_loader):
+                input, target = input.to(device), target.to(device)
                 output = endtoendmodel(input)
-                loss = loss_function(output.flatten(), target.flatten())
+                target = F.one_hot(target.long(), 2)
+                loss = loss_function(output.flatten().float().unsqueeze(-1), target.flatten().float().unsqueeze(-1))
                 val_loss += loss
 
         val_loss /= len(val_loader.dataset)
@@ -108,10 +112,10 @@ def inference(test_data, args, device):
 
     target = target * 255.
 
-    # Loop over timesteps
+    # Loop over timesteps 5~10 sequence data prediction.
     for timestep in range(target.shape[2]):
         input = batch[:, :, timestep:timestep + 5]
-        output[:, :, timestep] = (endtoendmodel(input).squeeze(1).cpu() > 0.5) * 255.0
+        output[:, :, timestep] = endtoendmodel(input).squeeze(1).cpu().data.max(1)[1].numpy()[:, :, :] * 255.0
 
         acc, acc_cls, mean_iu, fwavacc = utils.label_accuracy_score(target[:, :, timestep], output[:, :, timestep], 2)
 

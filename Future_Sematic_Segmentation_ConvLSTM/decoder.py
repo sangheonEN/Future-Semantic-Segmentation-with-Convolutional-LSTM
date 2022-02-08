@@ -10,6 +10,7 @@ class Decoder(nn.Module):
         self.out_channles = out_channels
 
         self.sequential = nn.Sequential()
+        self.softmax = nn.Softmax(dim=1)
 
         # 1x1 conv -> upsampling(transpose2d) -> element wise addition
         # transpose2d output size = (input_size -1) * Stride - 2Padding + Dilation * (kernel_size - 1) + output_padding + 1
@@ -23,7 +24,7 @@ class Decoder(nn.Module):
                                                           out_channels=out_channels[i], kernel_size=2, stride=2)
             )
 
-        self.final_upsampling = nn.ConvTranspose2d(in_channels = 256, out_channels= 3, kernel_size= 2, stride=2)
+        self.final_upsampling = nn.ConvTranspose2d(in_channels = 256, out_channels= 2, kernel_size= 2, stride=2)
 
 
     def forward(self, feature_1, feature_2, feature_3, feature_4):

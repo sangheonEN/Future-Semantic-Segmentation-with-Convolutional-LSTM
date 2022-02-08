@@ -46,12 +46,14 @@ def collate(batch):
     new_batch[:,1,:,:,:] = batch[:,0,:,:,:]
     new_batch[:,2,:,:,:] = batch[:,0,:,:,:]
 
-    new_batch = new_batch / 255.0
-    new_batch = new_batch.to(device)
+    input_new_batch = new_batch / 255.0
+    input_new_batch = input_new_batch.to(device)
+    target_batch = batch / 255.0
+    target_batch = target_batch.to(device)
 
     # Randomly pick 10 frames as input, 11th frame is target
     rand = np.random.randint(10,20)
-    return new_batch[:,:,rand-5:rand], new_batch[:,:,rand]
+    return input_new_batch[:,:,rand-5:rand], target_batch[:,:,rand]
 
 def collate_test(batch):
 
@@ -63,15 +65,18 @@ def collate_test(batch):
     new_batch[:,1,:,:,:] = batch[:,0,:,:,:]
     new_batch[:,2,:,:,:] = batch[:,0,:,:,:]
 
-    new_batch = new_batch / 255.0
-    new_batch = new_batch.to(device)
+    input_new_batch = new_batch / 255.0
+    input_new_batch = input_new_batch.to(device)
+    target_batch = batch / 255.0
+    target_batch = target_batch.to(device)
 
     # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
     # 지금 shape은 batch, 1channel, h, w
     # target = np.array(batch)[:, 10:]
-    target = np.array(new_batch.cpu())[:,:, 15:]
+    # 5 ~ 10 sequence data prediction.
+    target = np.array(target_batch.cpu())[:,:, 5:10]
 
-    return new_batch, target
+    return input_new_batch, target
 
 
 # Training Data Loader
