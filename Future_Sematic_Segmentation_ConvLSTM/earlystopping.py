@@ -17,7 +17,7 @@ class EarlyStopping:
         self.early_stop = False
         self.val_loss_min = np.Inf
 
-    def __call__(self, val_loss, model, epoch, save_path):
+    def __call__(self, val_loss, model, epoch, save_path, log_dir):
 
         # score는 validation loss의 음수 값을 사용 부호 반대 고려하기.
         score = -val_loss
@@ -26,6 +26,12 @@ class EarlyStopping:
             # epoch 1일때, 초기 best score 저장
             self.best_score = score
             self.save_checkpoint(val_loss, model, epoch, save_path)
+            # log file save
+            log = [epoch, val_loss]
+            with open(os.path.join(log_dir, 'log.csv'), 'a') as f:
+                log_1 = list(map(str, log))
+                f.write(','.join(log_1) + '\n')
+
         elif score < self.best_score:
             # new score가 이전 self.best_score보다. 실제 val_loss 부호 반대니까 작으면 크다고 생각해야함.
             # 따라서, new score가 이전 best_score보다 크니까 더 안좋은 학습 결과임. 카운트함.
@@ -38,6 +44,12 @@ class EarlyStopping:
             self.best_score = score
             self.save_checkpoint(val_loss, model, epoch, save_path)
             self.counter = 0
+
+            # log file save
+            log = [epoch, val_loss]
+            with open(os.path.join(log_dir, 'log.csv'), 'a') as f:
+                log_1 = list(map(str, log))
+                f.write(','.join(log_1) + '\n')
 
 
     def save_checkpoint(self, val_loss, model, epoch, save_path):

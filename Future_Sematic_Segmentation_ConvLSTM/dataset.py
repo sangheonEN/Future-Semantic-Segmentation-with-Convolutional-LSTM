@@ -69,7 +69,7 @@ def collate_test(batch):
     # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
     # 지금 shape은 batch, 1channel, h, w
     # target = np.array(batch)[:, 10:]
-    target = np.array(new_batch)[:,:, 5:]
+    target = np.array(new_batch.cpu())[:,:, 15:]
 
     return new_batch, target
 
@@ -82,15 +82,15 @@ def data_loader(train_data, val_data, batch_size):
                             batch_size=batch_size, collate_fn=collate)
 
     # Validation Data Loader
-    val_loader = DataLoader(val_data, shuffle=True,
+    val_loader = DataLoader(val_data, shuffle=False,
                             batch_size=batch_size, collate_fn=collate)
 
     return train_loader, val_loader
 
 
-def data_loader_test(test_data):
+def data_loader_test(test_data, batch_size):
 
-    test_loader = DataLoader(test_data, shuffle=True, batch_size=3, collate_fn=collate_test)
+    test_loader = DataLoader(test_data, shuffle=False, batch_size=batch_size, collate_fn=collate_test)
 
     return test_loader
 

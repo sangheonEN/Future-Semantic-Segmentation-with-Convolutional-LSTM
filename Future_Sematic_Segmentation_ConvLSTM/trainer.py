@@ -10,53 +10,17 @@ from earlystopping import EarlyStopping
 import matplotlib.pyplot as plt
 import model
 from net_parameters import *
-
-
-def image_plot(target_arr, output_arr):
-    fig = plt.figure()
-    rows = 2
-    cols = 10
-
-    for i in range(rows):
-        for j in range(cols):
-            if i == 0:
-                ax1 = fig.add_subplot(rows, cols, i + j+1)
-                ax1.imshow(target_arr[j])
-                ax1.set_title(f"{j}_target")
-                ax1.axis("off")
-            else:
-                ax1 = fig.add_subplot(rows, cols, i+9 + j+1)
-                ax1.imshow(output_arr[j])
-                ax1.set_title(f"{j}output")
-                ax1.axis("off")
-
-    plt.show()
-    print("출력되나?")
-
-
-
-def visualization(target, output, save_path):
-    import io
-    import imageio
-    from ipywidgets import widgets, HBox
-
-    pred_array = []
-    target_array = []
-
-    for tgt, out in zip(target, output):  # Loop over samples
-        # target, output shape: (batch, sequence, height, width)
-        # tgt, out shape: (sequence, height, width)
-        for i in range(tgt.shape[0]):
-            img_tgt = np.expand_dims(tgt[i,:], -1)
-            img_out = np.expand_dims(out[i,:], -1)
-            cv2.imwrite(os.path.join(save_path, f"target/{i}_image_target.png"), img_tgt)
-            cv2.imwrite(os.path.join(save_path, f"pred/{i}_image_prediction.png"), img_out)
-            pred_array.append(img_out)
-            target_array.append(img_tgt)
-        image_plot(target_array, pred_array)
+import utils
 
 
 def train(train_data, valid_data, args, device):
+    # model 결과 log dir
+    log_dir = "./saver"
+    log_heads = ['epoch', 'val_loss']
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    with open(os.path.join(log_dir, "log.csv"), 'w') as f:
+        f.write(','.join(log_heads)+ '\n')
 
     train_loader, val_loader = dataset.data_loader(train_data, valid_data, args.batch_size)
 
@@ -117,7 +81,7 @@ def train(train_data, valid_data, args, device):
             'optimizer': optimizer.state_dict()
         }
 
-        early_stopping(val_loss.item(), model_dict, epoch, args.save_dir)
+        early_stopping(val_loss.item(), model_dict, epoch, args.save_dir, log_dir)
         if early_stopping.early_stop:
             print("Early stopping")
             break
@@ -125,7 +89,7 @@ def train(train_data, valid_data, args, device):
 
 def inference(test_data, args, device):
 
-    test_loader = dataset.data_loader_test(test_data)
+    test_loader = dataset.data_loader_test(test_data, args.batch_size)
 
     endtoendmodel = model.Ensemble(convLSTM_parameters_list , num_layers=3, transpose_channels_list=transpose_channels_list).to(device)
 
@@ -142,13 +106,20 @@ def inference(test_data, args, device):
 
     output = np.zeros(target.shape, dtype=np.uint8)
 
+    target = target * 255.
+
     # Loop over timesteps
-    for timestep in range(target.shape[1]):
-        input = batch[:, :, timestep:timestep + 10]
-        output[:, timestep] = (endtoendmodel(input).squeeze(1).cpu() > 0.5) * 255.0
+    for timestep in range(target.shape[2]):
+        input = batch[:, :, timestep:timestep + 5]
+        output[:, :, timestep] = (endtoendmodel(input).squeeze(1).cpu() > 0.5) * 255.0
+
+        acc, acc_cls, mean_iu, fwavacc = utils.label_accuracy_score(target[:, :, timestep], output[:, :, timestep], 2)
+
+        print(f"sequence:{timestep+1} - acc:{acc}, acc_cls:{acc_cls}, mean_iou:{mean_iu}")
 
     save_path = os.path.dirname(os.path.abspath(__file__))
 
-    visualization(target, output, save_path)
+
+    utils.visualization(target, output, save_path)
 
 
