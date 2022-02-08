@@ -51,7 +51,7 @@ def collate(batch):
 
     # Randomly pick 10 frames as input, 11th frame is target
     rand = np.random.randint(10,20)
-    return new_batch[:,:,rand-10:rand], new_batch[:,:,rand]
+    return new_batch[:,:,rand-5:rand], new_batch[:,:,rand]
 
 def collate_test(batch):
 
@@ -69,7 +69,7 @@ def collate_test(batch):
     # Last 10 frames are target 혹시 나중에 target channel에서 오류 발생 시 dimension 맞춰주기!
     # 지금 shape은 batch, 1channel, h, w
     # target = np.array(batch)[:, 10:]
-    target = np.array(new_batch)[:,:, 10:]
+    target = np.array(new_batch)[:,:, 5:]
 
     return new_batch, target
 

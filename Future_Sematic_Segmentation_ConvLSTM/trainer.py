@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 import os
-import convlstm as cl
+from tqdm import tqdm
 from earlystopping import EarlyStopping
 import matplotlib.pyplot as plt
 import model
@@ -88,7 +88,7 @@ def train(train_data, valid_data, args, device):
     for epoch in range(cur_epoch, args.max_epoch+1):
         train_loss = 0
         endtoendmodel.train()
-        for batch_num, (input, target) in enumerate(train_loader, 1):
+        for batch_num, (input, target) in tqdm(enumerate(train_loader, 1)):
             input, target = input.to(device), target.to(device)
             output = endtoendmodel(input)
             loss = loss_function(output.flatten(), target.flatten())
@@ -102,7 +102,7 @@ def train(train_data, valid_data, args, device):
         val_loss = 0
         endtoendmodel.eval()
         with torch.no_grad():
-            for input, target in val_loader:
+            for input, target in tqdm(val_loader):
                 output = endtoendmodel(input)
                 loss = loss_function(output.flatten(), target.flatten())
                 val_loss += loss

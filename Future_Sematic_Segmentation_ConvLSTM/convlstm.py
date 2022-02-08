@@ -203,21 +203,23 @@ class Seq2Seq(nn.Module):
             f"batchnorm_conv1_feature_{feature_num}",
             nn.BatchNorm3d(num_features=param_data[feature_num-1].get(f"feature_{feature_num}")[1])
         )
-        for j in range(num_layers):
-            sequential_instance.add_module(
-                f"convlstm{j + 2}_feature_{feature_num}", ConvLSTM(
-                    in_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
-                    out_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
-                    kernel_size=param_data[feature_num-1].get(f"feature_{feature_num}")[2],
-                    padding=param_data[feature_num-1].get(f"feature_{feature_num}")[3],
-                    activation=param_data[feature_num-1].get(f"feature_{feature_num}")[4],
-                    frame_size=param_data[feature_num-1].get(f"feature_{feature_num}")[5]
-                )
-            )
-            sequential_instance.add_module(
-                f"batchnorm_conv{j + 2}_feature_{feature_num}",
-                nn.BatchNorm3d(num_features=param_data[feature_num-1].get(f"feature_{feature_num}")[1])
-            )
+
+        # multi layer delete
+        # for j in range(num_layers):
+        #     sequential_instance.add_module(
+        #         f"convlstm{j + 2}_feature_{feature_num}", ConvLSTM(
+        #             in_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
+        #             out_channels=param_data[feature_num-1].get(f"feature_{feature_num}")[1],
+        #             kernel_size=param_data[feature_num-1].get(f"feature_{feature_num}")[2],
+        #             padding=param_data[feature_num-1].get(f"feature_{feature_num}")[3],
+        #             activation=param_data[feature_num-1].get(f"feature_{feature_num}")[4],
+        #             frame_size=param_data[feature_num-1].get(f"feature_{feature_num}")[5]
+        #         )
+        #     )
+        #     sequential_instance.add_module(
+        #         f"batchnorm_conv{j + 2}_feature_{feature_num}",
+        #         nn.BatchNorm3d(num_features=param_data[feature_num-1].get(f"feature_{feature_num}")[1])
+        #     )
 
     def forward(self, feature_1, feature_2, feature_3, feature_4):
         # Forward propagation through all the layers
