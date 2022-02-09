@@ -2,6 +2,13 @@ import numpy as np
 import cv2
 import os
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error
+
+
+def mse(pred, target):
+    mse_value = mean_absolute_error(target.flatten(), pred.flatten())
+
+    return mse_value
 
 
 def _fast_hist(label_true, label_pred, n_class):

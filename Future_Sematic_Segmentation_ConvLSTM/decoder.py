@@ -24,7 +24,7 @@ class Decoder(nn.Module):
                                                           out_channels=out_channels[i], kernel_size=2, stride=2)
             )
 
-        self.final_upsampling = nn.ConvTranspose2d(in_channels = 256, out_channels= 2, kernel_size= 2, stride=2)
+        self.final_upsampling = nn.ConvTranspose2d(in_channels = 256, out_channels= 1, kernel_size= 2, stride=2)
 
 
     def forward(self, feature_1, feature_2, feature_3, feature_4):

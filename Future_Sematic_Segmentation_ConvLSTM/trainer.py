@@ -47,20 +47,19 @@ def train(train_data, valid_data, args, device):
 
     optimizer = Adam(endtoendmodel.parameters(), lr=args.lr)
 
-    loss_function = nn.BCEWithLogitsLoss(reduction='sum')
+    loss_function = nn.MSELoss()
 
 
     for epoch in range(cur_epoch, args.max_epoch+1):
         train_loss = 0
-        endtoendmodel.train()
         for batch_num, (input, target) in tqdm(enumerate(train_loader, 1)):
+            optimizer.zero_grad()
+            endtoendmodel.train()
             input, target = input.to(device), target.to(device)
             output = endtoendmodel(input)
-            target = F.one_hot(target.long(), 2)
-            loss = loss_function(output.flatten().float().unsqueeze(-1), target.flatten().float().unsqueeze(-1))
+            loss = torch.sqrt(loss_function(output, target))
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
             train_loss += loss.item()
 
         train_loss /= len(train_loader.dataset)
@@ -71,8 +70,7 @@ def train(train_data, valid_data, args, device):
             for input, target in tqdm(val_loader):
                 input, target = input.to(device), target.to(device)
                 output = endtoendmodel(input)
-                target = F.one_hot(target.long(), 2)
-                loss = loss_function(output.flatten().float().unsqueeze(-1), target.flatten().float().unsqueeze(-1))
+                loss = torch.sqrt(loss_function(output, target))
                 val_loss += loss
 
         val_loss /= len(val_loader.dataset)
@@ -115,15 +113,19 @@ def inference(test_data, args, device):
     # Loop over timesteps 5~10 sequence data prediction.
     for timestep in range(target.shape[2]):
         input = batch[:, :, timestep:timestep + 5]
-        output[:, :, timestep] = endtoendmodel(input).squeeze(1).cpu().data.max(1)[1].numpy()[:, :, :] * 255.0
+        output[:, :, timestep] = endtoendmodel(input).cpu().detach().numpy() * 255.0
 
-        acc, acc_cls, mean_iu, fwavacc = utils.label_accuracy_score(target[:, :, timestep], output[:, :, timestep], 2)
+        metric = utils.mse(output[:, :, timestep], target[:, :, timestep])
 
-        print(f"sequence:{timestep+1} - acc:{acc}, acc_cls:{acc_cls}, mean_iou:{mean_iu}")
+        print(metric)
 
     save_path = os.path.dirname(os.path.abspath(__file__))
-
 
     utils.visualization(target, output, save_path)
 
 
+# 나중에 segmentation 할때
+# target = F.one_hot(target.long(), 2)
+# segmentation일때
+# acc, acc_cls, mean_iu, fwavacc = utils.label_accuracy_score(target[:, :, timestep], output[:, :, timestep], 2)
+# print(f"sequence:{timestep+1} - acc:{acc}, acc_cls:{acc_cls}, mean_iou:{mean_iu}")
