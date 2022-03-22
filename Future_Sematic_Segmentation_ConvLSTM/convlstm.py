@@ -229,12 +229,13 @@ class Seq2Seq(nn.Module):
         # feature2 shape: 16, 10, 512, 8, 8
         # feature3 shape: 16, 10, 1024, 4, 4
         # feature4 shape: 16, 10, 2048, 2, 2
-        output_1 = self.sequential1(feature_1)
+        # output은 각 시퀀스마다 hidden state map이 저장된 shape으로 반환되어 저장된다.
+        output_1 = self.sequential1(feature_1) # batch, channels, sequence, H, W
         output_2 = self.sequential2(feature_2)
         output_3 = self.sequential3(feature_3)
         output_4 = self.sequential4(feature_4)
 
-        # feature map's Return only the last output frame
+        # feature map's Return only the last output frame(last hidden state map)
         output_1 = self.conv1(output_1[:, :, -1])
         output_2 = self.conv2(output_2[:, :, -1])
         output_3 = self.conv3(output_3[:, :, -1])
